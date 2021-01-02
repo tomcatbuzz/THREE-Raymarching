@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-// let OrbitControls = require("three-orbit-controls")(THREE);
-// import { GLTFLoader } from 'js/GLTFLoader.js';
 
 import fragment from './shader/fragment.glsl';
 import vertex from './shader/vertex.glsl';
 // import * as dat from 'dat.gui';
 // import gsap from 'gsap';
+
+import matcap from '../img/256.png';
+import matcap1 from '../img/2.png';
 
 export default class Sketch {
   constructor(options) {
@@ -49,7 +50,12 @@ export default class Sketch {
     this.resize();
     this.render();
     this.setupResize();
+    this.mouseEvents();
     // this.settings();
+  }
+
+  mouseEvents() {
+    
   }
 
   // settings() {
@@ -107,7 +113,8 @@ export default class Sketch {
       uniforms: {
         time: { value: 0 },
         progress: { value: 0 },
-        texture1: { value: null },
+        matcap: { value: new THREE.TextureLoader().load(matcap) },
+        matcap1: { value: new THREE.TextureLoader().load(matcap1) },
         // t1: { value: new THREE.TextureLoader().load(texture1) },
         // t2: { value: new THREE.TextureLoader().load(blog) },
         resolution: { value: new THREE.Vector4() },

@@ -37771,9 +37771,13 @@ exports.MapControls = MapControls;
 MapControls.prototype = Object.create(_threeModule.EventDispatcher.prototype);
 MapControls.prototype.constructor = MapControls;
 },{"../../../build/three.module.js":"node_modules/three/build/three.module.js"}],"js/shader/fragment.glsl":[function(require,module,exports) {
-module.exports = "#define GLSLIFY 1\nuniform float time;\nuniform float progress;\nuniform sampler2D texture1;\nuniform vec4 resolution;\nvarying vec2 vUv;\n// varying vec3 vPosition;\nfloat PI = 3.141592653589793238;\nfloat sdSphere( vec3 p, float r ){\n  return length(p)-r;\n}\n\nfloat sdf(vec3 p){\n\treturn sdSphere(p,0.4);\n}\nvoid main()\t{\n\tvec2 newUV = (vUv - vec2(0.5))*resolution.zw + vec2(0.5);\n\tvec3 camPos = vec3(0.,0.,2.);\n\tvec3 ray = normalize(vec3((vUv - vec2(0.5))*resolution.zw,-1));\n\n\tvec3 rayPos = camPos;\n\tfloat t = 0.;\n\tfloat tMax = 5.;\n\tfor(int i=0;i<256;++i){\n\t\tvec3 pos = camPos + t*ray;\n\t\tfloat h = sdf(pos);\n\t\tif(h<0.0001 || t>tMax) break;\n\t\tt+=h;\n\t}\n\n\tvec3 color = vec3(0.);\n\tif(t<tMax){\n\t\tcolor = vec3(1.);\n\t}\n\t\n\tgl_FragColor = vec4(color,1.);\n}";
+module.exports = "#define GLSLIFY 1\nuniform float time;\nuniform float progress;\nuniform sampler2D matcap,matcap1;\nuniform vec4 resolution;\nvarying vec2 vUv;\n// varying vec3 vPosition;\nfloat PI = 3.141592653589793238;\n\n// matcap formula\nvec2 getmatcap(vec3 eye, vec3 normal) {\n  vec3 reflected = reflect(eye, normal);\n  float m = 2.8284271247461903 * sqrt( reflected.z+1.0 );\n  return reflected.xy / m + 0.5;\n}\n\n// rotation\nmat4 rotationMatrix(vec3 axis, float angle) {\n    axis = normalize(axis);\n    float s = sin(angle);\n    float c = cos(angle);\n    float oc = 1.0 - c;\n    \n    return mat4(oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,  0.0,\n                oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,  0.0,\n                oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c,           0.0,\n                0.0,                                0.0,                                0.0,                                1.0);\n}\n\nvec3 rotate(vec3 v, vec3 axis, float angle) {\n\tmat4 m = rotationMatrix(axis, angle);\n\treturn (m * vec4(v, 1.0)).xyz;\n}\n\n// move minimum\nfloat smin( float a, float b, float k )\n{\n    float h = clamp( 0.5+0.5*(b-a)/k, 0.0, 1.0 );\n    return mix( b, a, h ) - k*h*(1.0-h);\n}\n\nfloat sdSphere( vec3 p, float r ){\n  return length(p)-r;\n}\n\nfloat sdBox( vec3 p, vec3 b )\n{\n  vec3 q = abs(p) - b;\n  return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);\n}\n\nfloat sdf(vec3 p){\n\tvec3 p1 = rotate(p,vec3(1.),time/5.);\n\tfloat box = sdBox(p1, vec3(0.3));\n\tfloat sphere = sdSphere(p,0.4);\n\treturn smin(box,sphere,0.1);\n}\n\nvec3 calcNormal( in vec3 p ){ // for function f(p)\nconst float eps = 0.0001; // or some other value\nconst vec2 h = vec2(eps,0);\nreturn normalize( vec3(sdf(p+h.xyy) - sdf(p-h.xyy),\nsdf(p+h.yxy) - sdf(p-h.yxy),\nsdf(p+h.yyx) - sdf(p-h.yyx) ) );\n}\n\nvoid main()\t{\n\tvec2 newUV = (vUv - vec2(0.5))*resolution.zw + vec2(0.5);\n\tvec3 camPos = vec3(0.,0.,2.);\n\tvec3 ray = normalize(vec3((vUv - vec2(0.5))*resolution.zw,-1));\n\n\tvec3 rayPos = camPos;\n\tfloat t = 0.;\n\tfloat tMax = 5.;\n\tfor(int i=0;i<256;++i){\n\t\tvec3 pos = camPos + t*ray;\n\t\tfloat h = sdf(pos);\n\t\tif(h<0.0001 || t>tMax) break;\n\t\tt+=h;\n\t}\n\n\tvec3 color = vec3(0.);\n\tif(t<tMax){\n\t\tvec3 pos = camPos + t*ray;\n\t\tcolor = vec3(1.);\n\t\tvec3 normal = calcNormal(pos);\n\t\tcolor = normal;\n\t\tfloat diff = dot(vec3(1.),normal);\n\t\tvec2 matcapUV = getmatcap(ray,normal);\n\t\tcolor = vec3(diff);\n\t\tcolor = texture2D(matcap1,matcapUV).rgb;\n\t}\n\t\n\tgl_FragColor = vec4(color,1.);\n}";
 },{}],"js/shader/vertex.glsl":[function(require,module,exports) {
 module.exports = "#define GLSLIFY 1\nuniform float time;\nvarying vec2 vUv;\nvarying vec3 vPosition;\nuniform vec2 pixels;\nfloat PI = 3.141592653589793238;\nvoid main() {\n  vUv = uv;\n  gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );\n}";
+},{}],"img/256.png":[function(require,module,exports) {
+module.exports = "/256.7bbffde7.png";
+},{}],"img/2.png":[function(require,module,exports) {
+module.exports = "/2.ec21867c.png";
 },{}],"js/app.js":[function(require,module,exports) {
 "use strict";
 
@@ -37790,6 +37794,10 @@ var _fragment = _interopRequireDefault(require("./shader/fragment.glsl"));
 
 var _vertex = _interopRequireDefault(require("./shader/vertex.glsl"));
 
+var _ = _interopRequireDefault(require("../img/256.png"));
+
+var _2 = _interopRequireDefault(require("../img/2.png"));
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
@@ -37802,8 +37810,6 @@ function _defineProperties(target, props) { for (var i = 0; i < props.length; i+
 
 function _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }
 
-// import * as dat from 'dat.gui';
-// import gsap from 'gsap';
 var Sketch = /*#__PURE__*/function () {
   function Sketch(options) {
     _classCallCheck(this, Sketch);
@@ -37834,18 +37840,22 @@ var Sketch = /*#__PURE__*/function () {
     this.addObjects();
     this.resize();
     this.render();
-    this.setupResize(); // this.settings();
-  } // settings() {
-  //   let that = this;
-  //   this.settings = {
-  //     progress: 0,
-  //   };
-  //   this.gui = new dat.GUI();
-  //   this.gui.add(this.settings, 'progress', 0, 1, 0.01);
-  // }
-
+    this.setupResize();
+    this.mouseEvents(); // this.settings();
+  }
 
   _createClass(Sketch, [{
+    key: "mouseEvents",
+    value: function mouseEvents() {} // settings() {
+    //   let that = this;
+    //   this.settings = {
+    //     progress: 0,
+    //   };
+    //   this.gui = new dat.GUI();
+    //   this.gui.add(this.settings, 'progress', 0, 1, 0.01);
+    // }
+
+  }, {
     key: "setupResize",
     value: function setupResize() {
       window.addEventListener('resize', this.resize.bind(this));
@@ -37896,8 +37906,11 @@ var Sketch = /*#__PURE__*/function () {
           progress: {
             value: 0
           },
-          texture1: {
-            value: null
+          matcap: {
+            value: new THREE.TextureLoader().load(_.default)
+          },
+          matcap1: {
+            value: new THREE.TextureLoader().load(_2.default)
           },
           // t1: { value: new THREE.TextureLoader().load(texture1) },
           // t2: { value: new THREE.TextureLoader().load(blog) },
@@ -37946,7 +37959,7 @@ exports.default = Sketch;
 new Sketch({
   dom: document.getElementById('container')
 });
-},{"three":"node_modules/three/build/three.module.js","three/examples/jsm/controls/OrbitControls.js":"node_modules/three/examples/jsm/controls/OrbitControls.js","./shader/fragment.glsl":"js/shader/fragment.glsl","./shader/vertex.glsl":"js/shader/vertex.glsl"}],"../../../../usr/lib/node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
+},{"three":"node_modules/three/build/three.module.js","three/examples/jsm/controls/OrbitControls.js":"node_modules/three/examples/jsm/controls/OrbitControls.js","./shader/fragment.glsl":"js/shader/fragment.glsl","./shader/vertex.glsl":"js/shader/vertex.glsl","../img/256.png":"img/256.png","../img/2.png":"img/2.png"}],"../../../Users/Tony/AppData/Roaming/npm/node_modules/parcel-bundler/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
 var OldModule = module.bundle.Module;
@@ -37974,7 +37987,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "46791" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "61238" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
@@ -38150,5 +38163,5 @@ function hmrAcceptRun(bundle, id) {
     return true;
   }
 }
-},{}]},{},["../../../../usr/lib/node_modules/parcel-bundler/src/builtins/hmr-runtime.js","js/app.js"], null)
+},{}]},{},["../../../Users/Tony/AppData/Roaming/npm/node_modules/parcel-bundler/src/builtins/hmr-runtime.js","js/app.js"], null)
 //# sourceMappingURL=/app.c3f9f951.js.map
