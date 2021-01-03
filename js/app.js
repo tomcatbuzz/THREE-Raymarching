@@ -3,11 +3,11 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 import fragment from './shader/fragment.glsl';
 import vertex from './shader/vertex.glsl';
-// import * as dat from 'dat.gui';
+import * as dat from 'dat.gui';
 // import gsap from 'gsap';
 
 import matcap from '../img/256.png';
-import matcap1 from '../img/2.png';
+import matcap1 from '../img/4.png';
 
 export default class Sketch {
   constructor(options) {
@@ -51,21 +51,25 @@ export default class Sketch {
     this.render();
     this.setupResize();
     this.mouseEvents();
-    // this.settings();
+    this.settings();
   }
 
   mouseEvents() {
-    
+    this.mouse = new THREE.Vector2();
+    document.addEventListener('mousemove', (e)=> {
+    this.mouse.x = e.pageX/this.width - 0.5;
+    this.mouse.y = -e.pageY/this.height + 0.5;
+    })
   }
 
-  // settings() {
-  //   let that = this;
-  //   this.settings = {
-  //     progress: 0,
-  //   };
-  //   this.gui = new dat.GUI();
-  //   this.gui.add(this.settings, 'progress', 0, 1, 0.01);
-  // }
+  settings() {
+    let that = this;
+    this.settings = {
+      progress: 0,
+    };
+    this.gui = new dat.GUI();
+    this.gui.add(this.settings, 'progress', 0, 1, 0.01);
+  }
 
   setupResize() {
     window.addEventListener('resize', this.resize.bind(this));
@@ -113,6 +117,7 @@ export default class Sketch {
       uniforms: {
         time: { value: 0 },
         progress: { value: 0 },
+        mouse: { value: new THREE.Vector2(0,0) },
         matcap: { value: new THREE.TextureLoader().load(matcap) },
         matcap1: { value: new THREE.TextureLoader().load(matcap1) },
         // t1: { value: new THREE.TextureLoader().load(texture1) },
@@ -145,7 +150,10 @@ export default class Sketch {
     if (!this.isPlaying) return;
     this.time += 0.05;
     this.material.uniforms.time.value = this.time;
-    // this.material.uniforms.progress.value = this.settings.progress;
+    if(this.mouse){
+      this.material.uniforms.mouse.value = this.mouse;
+    }
+    this.material.uniforms.progress.value = this.settings.progress;
     requestAnimationFrame(this.render.bind(this));
     this.renderer.render(this.scene, this.camera);
   }
